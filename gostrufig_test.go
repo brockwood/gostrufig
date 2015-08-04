@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+func ExampleGoStruFig() {
+	type MyConfigInfo struct {
+		DecodeDir   string `cfg-def:"/home/user/decoder"`
+		Environment string `cfg-ns:"true" cfg-def:"developer"`
+		Timer       int
+		Type        string
+		TestTimeout float64
+	}
+
+	ns := MyConfigInfo{}
+	gostrufig := GetGoStruFig("appname", "etcd", "http://localhost:2379")
+	gostrufig.RetrieveConfig(&ns)
+}
+
 func TestNamespace(t *testing.T) {
 	desiredNamespace := "/appname/developer/calculator/"
 	type NameSpace struct {

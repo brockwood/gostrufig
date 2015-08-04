@@ -9,11 +9,25 @@ import (
 	"strings"
 )
 
+// CFGDEFAULT stands for the default value for the variable if nothing is provided in the config.
 const CFGDEFAULT string = `cfg-def`
+
+// CFGNAMESPACE if "true", will include this member variable's name as part of the namespace path in the configuration.
+// For example,
+//	type MyConfig struct {
+//		Name    string `cfg-ns:"true"`
+//		Number  int `cfg-ns:"true"`
+//		Message string
+// 	}
+// example := MyConfig{"brockwood", 123, "This is an example."}
+// When retrieving this config for an application called "testApp", it can be found at "/testApp/brockwood/123/"
 const CFGNAMESPACE string = `cfg-ns`
 
-const CONFIGFOUND int = 100
-const CONFIGNOTFOUND int = 200
+// Configuration response codes
+const (
+	CONFIGFOUND    int = 100
+	CONFIGNOTFOUND int = 200
+)
 
 type GoStruFig struct {
 	appName        string
@@ -22,6 +36,7 @@ type GoStruFig struct {
 	config         interface{}
 }
 
+// GetGoStruFig returns an instace of the configuration with the given name, driver and configuration URL.
 func GetGoStruFig(appname, drivername, location string) GoStruFig {
 	var targetDriver Driver
 	switch drivername {
@@ -32,6 +47,7 @@ func GetGoStruFig(appname, drivername, location string) GoStruFig {
 	return GoStruFig{appName: appname, driver: targetDriver, driverLocation: location}
 }
 
+// RetrieveConfig applies the value from config to the input.
 func (gsf *GoStruFig) RetrieveConfig(target interface{}) {
 	gsf.config = target
 	setInitialStructValues(gsf.config, gsf.appName)
