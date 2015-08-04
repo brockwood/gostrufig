@@ -2,8 +2,9 @@ package gostrufig
 
 import (
 	"fmt"
-	"github.com/coreos/go-etcd/etcd"
 	"reflect"
+
+	"github.com/coreos/go-etcd/etcd"
 )
 
 type EtcdDriver struct {
@@ -19,6 +20,7 @@ func getEtcdDriver(machine string) Driver {
 	return Driver(&newdriver)
 }
 
+// Load reads etcd configurations from the given path into EtcdDriver
 func (ed *EtcdDriver) Load(configStorePath string) int {
 	var err error
 	ed.path = configStorePath
@@ -33,6 +35,7 @@ func (ed *EtcdDriver) Load(configStorePath string) int {
 	return CONFIGFOUND
 }
 
+// Populate copies data from the EtcdDriver into the given struct.
 func (ed *EtcdDriver) Populate(targetStruct interface{}) {
 	structData := reflect.ValueOf(targetStruct).Elem()
 	structType := structData.Type()
