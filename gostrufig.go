@@ -23,45 +23,40 @@ const CFGDEFAULT string = `cfg-def`
 // When retrieving this config for an application called "testApp", it can be found at "/testApp/brockwood/123/"
 const CFGNAMESPACE string = `cfg-ns`
 
+var gsfdriver Driver
+
 // Configuration response codes
 const (
-	CONFIGFOUND    int = 100
-	CONFIGNOTFOUND int = 200
+	CONFIGNOTFOUND int = 100
+	CONFIGFOUND    int = 200
 )
 
-type GoStruFig struct {
+type Gostrufig struct {
 	appName        string
-	driver         Driver
 	driverLocation string
 	config         interface{}
 }
 
 // GetGoStruFig returns an instace of the configuration with the given name, driver and configuration URL.
-func GetGoStruFig(appname, drivername, location string) GoStruFig {
-	var targetDriver Driver
-	switch drivername {
-	case "etcd":
-		targetDriver = getEtcdDriver(location)
-		break
-	}
-	return GoStruFig{appName: appname, driver: targetDriver, driverLocation: location}
+func GetGostrufig(appname, location string) Gostrufig {
+	return Gostrufig{appName: appname, driverLocation: location}
 }
 
 // RetrieveConfig applies the value from config to the input.
-func (gsf *GoStruFig) RetrieveConfig(target interface{}) {
+func (gsf *Gostrufig) RetrieveConfig(target interface{}) {
 	gsf.config = target
 	setInitialStructValues(gsf.config, gsf.appName)
-	configpath := generateNameSpacePath(gsf.config, gsf.appName)
-	loadstatus := gsf.driver.Load(configpath)
+	configpath := gsf.generateNameSpacePath()
+	loadstatus := gsfdriver.Load(gsf.driverLocation, configpath)
 	if loadstatus == CONFIGFOUND {
-		gsf.driver.Populate(gsf.config)
+		setStructValues(gsf.config, gsf.appName, configpath, true)
 	}
 }
 
-func generateNameSpacePath(target interface{}, appname string) string {
+func (gsf *Gostrufig) generateNameSpacePath() string {
 	var newNamespace bytes.Buffer
-	newNamespace.WriteString("/" + appname + "/")
-	structData := reflect.ValueOf(target).Elem()
+	newNamespace.WriteString("/" + gsf.appName + "/")
+	structData := reflect.ValueOf(gsf.config).Elem()
 	structType := structData.Type()
 	for fieldNum := 0; fieldNum < structData.NumField(); fieldNum++ {
 		field := structType.Field(fieldNum)
@@ -75,28 +70,39 @@ func generateNameSpacePath(target interface{}, appname string) string {
 		}
 		if len(fieldData.String()) == 0 {
 			panic(fmt.Sprintf("Fieldname '%s' of the structure '%s' is tagged as part of this configuration's namespace but was zero length.",
-				field.Name, reflect.TypeOf(target)))
+				field.Name, reflect.TypeOf(gsf.config)))
 		}
-		newNamespace.WriteString(fieldData.String() + "/")
+		newNamespace.WriteString(fieldData.String())
 	}
 	return newNamespace.String()
 }
 
-func setInitialStructValues(target interface{}, preface string) {
+func setInitialStructValues(target interface{}, envpreface string) {
+	setStructValues(target, envpreface, "", false)
+}
+
+func setStructValues(target interface{}, envpreface, driverpreface string, searchDriver bool) {
 	structData := reflect.ValueOf(target).Elem()
 	structType := structData.Type()
 	for fieldNum := 0; fieldNum < structData.NumField(); fieldNum++ {
 		var decodeError error
 		field := structType.Field(fieldNum)
 		fieldData := structData.Field(fieldNum)
-		possibleEnvName := strings.ToUpper(preface) + "_" +
-			strings.ToUpper(field.Name)
+		possibleEnvName := strings.ToUpper(envpreface + "_" + field.Name)
 		possibleEnvValue := os.Getenv(possibleEnvName)
 		defaultValue := field.Tag.Get(CFGDEFAULT)
+		var driverValue string
+		var possibleDriverPath string
+		if searchDriver {
+			possibleDriverPath = driverpreface + "/" + field.Name
+			driverValue = gsfdriver.Retrieve(possibleDriverPath)
+		}
 		if fieldData.Kind() == reflect.Struct {
-			setInitialStructValues(fieldData.Addr().Interface(), possibleEnvName)
+			setStructValues(fieldData.Addr().Interface(), possibleEnvName, possibleDriverPath, searchDriver)
 		} else if len(possibleEnvValue) > 0 {
 			decodeError = setValue(&fieldData, possibleEnvValue)
+		} else if len(driverValue) > 0 {
+			decodeError = setValue(&fieldData, driverValue)
 		} else if len(defaultValue) > 0 {
 			decodeError = setValue(&fieldData, defaultValue)
 		}
@@ -143,6 +149,6 @@ func setValue(targetValue *reflect.Value, valueString string) error {
 	return nil
 }
 
-func register(name string, driver Driver) {
-	fmt.Println("Woot registered!")
+func RegisterDriver(driver Driver) {
+	gsfdriver = driver
 }
