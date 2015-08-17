@@ -55,7 +55,7 @@ func (gsf *Gostrufig) RetrieveConfig(target interface{}) {
 
 func (gsf *Gostrufig) generateNameSpacePath() string {
 	var newNamespace bytes.Buffer
-	newNamespace.WriteString("/" + gsf.appName + "/")
+	newNamespace.WriteString("/" + gsf.appName)
 	structData := reflect.ValueOf(gsf.config).Elem()
 	structType := structData.Type()
 	for fieldNum := 0; fieldNum < structData.NumField(); fieldNum++ {
@@ -72,7 +72,7 @@ func (gsf *Gostrufig) generateNameSpacePath() string {
 			panic(fmt.Sprintf("Fieldname '%s' of the structure '%s' is tagged as part of this configuration's namespace but was zero length.",
 				field.Name, reflect.TypeOf(gsf.config)))
 		}
-		newNamespace.WriteString(fieldData.String())
+		newNamespace.WriteString("/" + fieldData.String())
 	}
 	return newNamespace.String()
 }

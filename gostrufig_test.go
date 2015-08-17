@@ -17,12 +17,12 @@ func ExampleGoStruFig() {
 	}
 
 	ns := MyConfigInfo{}
-	gostrufig := GetGoStruFig("appname", "etcd", "http://localhost:2379")
+	gostrufig := GetGostrufig("appname", "http://localhost:2379")
 	gostrufig.RetrieveConfig(&ns)
 }
 
 func TestNamespace(t *testing.T) {
-	desiredNamespace := "/appname/developer/calculator/"
+	desiredNamespace := "/appname/developer/calculator"
 	type NameSpace struct {
 		DecodeDir   string
 		Environment string `cfg-ns:"true"`
@@ -31,7 +31,9 @@ func TestNamespace(t *testing.T) {
 		TestTimeout float64
 	}
 	namespace := NameSpace{"~/decode", "developer", 300, "calculator", 12.54}
-	newPath := generateNameSpacePath(&namespace, "appname")
+	gostrufig := GetGostrufig("appname", "http://localhost:2379")
+	gostrufig.config = &namespace
+	newPath := gostrufig.generateNameSpacePath()
 	if newPath != desiredNamespace {
 		t.Errorf("Expected namespace of %s, instead got namespace of %s\n", desiredNamespace, newPath)
 	} else {
