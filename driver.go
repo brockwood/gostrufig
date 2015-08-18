@@ -1,6 +1,7 @@
 package gostrufig
 
 type Driver interface {
+	SetRootPath(rootpath string)
 	Load(configStorePath string) int
-	Populate(targetStruct interface{})
+	Retrieve(name string) string
 }

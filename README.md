@@ -2,7 +2,16 @@
 
 ### Struct driven config management for your Go application!
 
-As a developer, how many times have you been at the mercy of an underlying configuration library to populate configuration data stored in a struct? If you're anything like me, too many to count. That's why there's now Gostrufig!  Using a few simple tags and the Gostrufig library, you can manage all of your configuration items right in the struct! Plus, as an added bonus, there's an included persistence layer that will pull data from Etcd.  Want an example? Here you go:
+As a developer, how many times have you been at the mercy of an underlying configuration library to populate configuration data stored in a struct? If you're anything like me, too many to count. That's why there's now Gostrufig!  Using a few simple tags and the Gostrufig library, you can manage all of your configuration items right in the struct! Plus, as an added bonus, there's an included persistence layer that will pull data from Etcd.  Want an example? First let's do a little importing of packages:
+
+```Go
+import (
+	"github.com/brockwood/gostrufig"
+	"github.com/brockwood/gostrufig/driver/etcd" // The gostrufig driver I would like to use
+)
+```
+
+With that out of the way, let's get some config data:
 
 ```Go
 type MyConfigInfo struct {
@@ -13,9 +22,15 @@ type MyConfigInfo struct {
 		TestTimeout float64
 }
 ns := MyConfigInfo{}
-gostrufig := GetGoStruFig("appname", "etcd", "http://localhost:2379")
+etcddriver := etcd.GetGostrufigDriver()
+gostrufig := GetGostrufig("appname", "http://localhost:2379", etcddriver)
 gostrufig.RetrieveConfig(&ns)
 ```
+
+## Drivers
+
+Gostrufig comes with a driver interface so that a program can retrieve their configuration data from a backend.  Right now, the only driver is for [Etcd](https://coreos.com/etcd/) but the interface is written in such a way that other backends can easily be added.
+
 ## Struct Tags And Their Function
 
 Does this wet your appetite? Good. Let me fill you in on those sweet sweet tags!
