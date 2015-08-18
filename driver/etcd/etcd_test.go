@@ -38,11 +38,12 @@ func TestEtcd(t *testing.T) {
 		TestTimeout: 3.14159276,
 		SubInfo:     populatedSubNs,
 	}
-	gsf := gostrufig.GetGostrufig("c2fo", "http://localhost:2379")
+	gsfdriver := GetGostrufigDriver()
+	gsf := gostrufig.GetGostrufig("appname", "http://localhost:2379", gsfdriver)
 	gsf.RetrieveConfig(&ns)
 	if reflect.DeepEqual(ns, populatedNs) {
 		t.Log("Blank and populated structs are the same.")
 	} else {
-		t.Errorf("Comparison of blank and populated structs failed.")
+		t.Errorf("Comparison of blank and populated structs failed; is your Etcd server running?")
 	}
 }

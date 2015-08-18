@@ -23,7 +23,7 @@ const CFGDEFAULT string = `cfg-def`
 // When retrieving this config for an application called "testApp", it can be found at "/testApp/brockwood/123/"
 const CFGNAMESPACE string = `cfg-ns`
 
-var gsfdriver Driver
+const DRIVERROOT string = `DRIVER_ROOT`
 
 // Configuration response codes
 const (
@@ -32,24 +32,40 @@ const (
 )
 
 type Gostrufig struct {
-	appName        string
-	driverLocation string
-	config         interface{}
+	appName string
+	driver  Driver
+	config  interface{}
 }
 
-// GetGoStruFig returns an instace of the configuration with the given name, driver and configuration URL.
-func GetGostrufig(appname, location string) Gostrufig {
-	return Gostrufig{appName: appname, driverLocation: location}
+// GetGoStruFig returns an instace of the configuration with the given name, configuration location,
+// and the driver you wish to use.  If your app just needs access to the environment and the tags
+// in the struct, feel free to pass in <nil>.  Otherwise instantiate a Gostrufig driver and pass
+// that in.
+func GetGostrufig(appname, location string, driver Driver) Gostrufig {
+	driverrootenv := strings.ToUpper(appname) + "_" + DRIVERROOT
+	driverrootoverride := os.Getenv(driverrootenv)
+	if len(driverrootoverride) > 0 {
+		location = driverrootoverride
+	}
+	gsf := Gostrufig{appName: appname}
+	if driver != nil {
+		driver.SetRootPath(location)
+		gsf.registerDriver(driver)
+	}
+	return gsf
 }
 
 // RetrieveConfig applies the value from config to the input.
 func (gsf *Gostrufig) RetrieveConfig(target interface{}) {
 	gsf.config = target
-	setInitialStructValues(gsf.config, gsf.appName)
+	gsf.setInitialStructValues(gsf.config, gsf.appName)
 	configpath := gsf.generateNameSpacePath()
-	loadstatus := gsfdriver.Load(gsf.driverLocation, configpath)
+	loadstatus := CONFIGNOTFOUND
+	if gsf.driver != nil {
+		loadstatus = gsf.driver.Load(configpath)
+	}
 	if loadstatus == CONFIGFOUND {
-		setStructValues(gsf.config, gsf.appName, configpath, true)
+		gsf.setStructValues(gsf.config, gsf.appName, configpath, true)
 	}
 }
 
@@ -77,11 +93,11 @@ func (gsf *Gostrufig) generateNameSpacePath() string {
 	return newNamespace.String()
 }
 
-func setInitialStructValues(target interface{}, envpreface string) {
-	setStructValues(target, envpreface, "", false)
+func (gsf *Gostrufig) setInitialStructValues(target interface{}, envpreface string) {
+	gsf.setStructValues(target, envpreface, "", false)
 }
 
-func setStructValues(target interface{}, envpreface, driverpreface string, searchDriver bool) {
+func (gsf *Gostrufig) setStructValues(target interface{}, envpreface, driverpreface string, searchDriver bool) {
 	structData := reflect.ValueOf(target).Elem()
 	structType := structData.Type()
 	for fieldNum := 0; fieldNum < structData.NumField(); fieldNum++ {
@@ -95,10 +111,10 @@ func setStructValues(target interface{}, envpreface, driverpreface string, searc
 		var possibleDriverPath string
 		if searchDriver {
 			possibleDriverPath = driverpreface + "/" + field.Name
-			driverValue = gsfdriver.Retrieve(possibleDriverPath)
+			driverValue = gsf.driver.Retrieve(possibleDriverPath)
 		}
 		if fieldData.Kind() == reflect.Struct {
-			setStructValues(fieldData.Addr().Interface(), possibleEnvName, possibleDriverPath, searchDriver)
+			gsf.setStructValues(fieldData.Addr().Interface(), possibleEnvName, possibleDriverPath, searchDriver)
 		} else if len(possibleEnvValue) > 0 {
 			decodeError = setValue(&fieldData, possibleEnvValue)
 		} else if len(driverValue) > 0 {
@@ -149,6 +165,6 @@ func setValue(targetValue *reflect.Value, valueString string) error {
 	return nil
 }
 
-func RegisterDriver(driver Driver) {
-	gsfdriver = driver
+func (gsf *Gostrufig) registerDriver(driver Driver) {
+	gsf.driver = driver
 }

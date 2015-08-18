@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func ExampleGoStruFig() {
+func ExampleGostrufig() {
 	type MyConfigInfo struct {
 		DecodeDir   string `cfg-def:"/home/user/decoder"`
 		Environment string `cfg-ns:"true" cfg-def:"developer"`
@@ -17,7 +17,9 @@ func ExampleGoStruFig() {
 	}
 
 	ns := MyConfigInfo{}
-	gostrufig := GetGostrufig("appname", "http://localhost:2379")
+	// Here the driver is set to nil
+	// See github.com/brockwood/gostrufig/driver for available gostrufig drivers
+	gostrufig := GetGostrufig("appname", "http://localhost:2379", nil)
 	gostrufig.RetrieveConfig(&ns)
 }
 
@@ -31,7 +33,7 @@ func TestNamespace(t *testing.T) {
 		TestTimeout float64
 	}
 	namespace := NameSpace{"~/decode", "developer", 300, "calculator", 12.54}
-	gostrufig := GetGostrufig("appname", "http://localhost:2379")
+	gostrufig := GetGostrufig("appname", "http://localhost:2379", nil)
 	gostrufig.config = &namespace
 	newPath := gostrufig.generateNameSpacePath()
 	if newPath != desiredNamespace {
@@ -65,7 +67,8 @@ func TestStructDefaults(t *testing.T) {
 		MyStruct  InternalStruct
 	}
 	blankStruct := EveryType{}
-	setInitialStructValues(&blankStruct, "c2fo")
+	gostrufig := GetGostrufig("appname", "http://localhost:2379", nil)
+	gostrufig.setInitialStructValues(&blankStruct, "c2fo")
 	populatedStruct := EveryType{-32, -128, -32768, -2147483648, -9223372036854775808,
 		32, 255, 65535, 4294967295, 18446744073709551615, true,
 		`four score and seven years ago`, 4.123456, -4.123456789, 300,
@@ -92,7 +95,8 @@ func TestStructEnv(t *testing.T) {
 	os.Setenv("C2FO_MYFLOAT64", "-4.123456789")
 	os.Setenv("C2FO_MYSTRUCT_MYSUBINT", "9223372036854775807")
 	os.Setenv("C2FO_MYSTRUCT_MYSUBBOOL", "false")
-	setInitialStructValues(&blankStruct, "c2fo")
+	gostrufig := GetGostrufig("appname", "http://localhost:2379", nil)
+	gostrufig.setInitialStructValues(&blankStruct, "c2fo")
 	populatedStruct := EnvStruct{4.123456, -4.123456789,
 		InternalEnvStruct{9223372036854775807, false}}
 	if reflect.DeepEqual(blankStruct, populatedStruct) {

@@ -6,22 +6,24 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 )
 
-func init() {
-	newdriver := EtcdDriver{}
-	gostrufig.RegisterDriver(gostrufig.Driver(&newdriver))
-}
-
 type EtcdDriver struct {
 	client   *etcd.Client
 	response *etcd.Response
 	path     string
 }
 
+func GetGostrufigDriver() gostrufig.Driver {
+	newdriver := EtcdDriver{}
+	return gostrufig.Driver(&newdriver)
+}
+
+func (ed *EtcdDriver) SetRootPath(rootpath string) {
+	machines := []string{rootpath}
+	ed.client = etcd.NewClient(machines)
+}
+
 // Load reads etcd configurations from the given path into EtcdDriver
-func (ed *EtcdDriver) Load(location, configStorePath string) int {
-	if ed.client == nil {
-		ed.loadEtcdClient()
-	}
+func (ed *EtcdDriver) Load(configStorePath string) int {
 	var err error
 	ed.path = configStorePath
 	ed.response, err = ed.client.Get(configStorePath, true, true)
@@ -38,11 +40,6 @@ func (ed *EtcdDriver) Load(location, configStorePath string) int {
 // Populate copies data from the EtcdDriver into the given struct.
 func (ed *EtcdDriver) Retrieve(path string) string {
 	return findEtcdNode(ed.response.Node.Nodes, path)
-}
-
-func (ed *EtcdDriver) loadEtcdClient() {
-	machines := []string{"http://localhost:2379"}
-	ed.client = etcd.NewClient(machines)
 }
 
 func findEtcdNode(nodes etcd.Nodes, name string) string {
