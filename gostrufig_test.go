@@ -1,6 +1,7 @@
 package gostrufig
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -102,6 +103,48 @@ func TestStructEnv(t *testing.T) {
 	if reflect.DeepEqual(blankStruct, populatedStruct) {
 		t.Log("Blank and populated structs are the same.")
 	} else {
+		t.Errorf("Comparison of blank and populated structs failed.")
+	}
+}
+
+func TestStringSliceParse(t *testing.T) {
+	type MyStruct struct {
+		ServiceHosts []string
+	}
+	blankStruct := MyStruct{}
+	hosts := []string{"host1:6379", "host2:6379"}
+	os.Setenv("C2FO_SERVICEHOSTS", fmt.Sprintf("%v", hosts))
+	gostrufig := GetGostrufig("appname", "http://localhost:2379", nil)
+	gostrufig.setInitialStructValues(&blankStruct, "c2fo")
+	populatedStruct := MyStruct{
+		ServiceHosts: hosts,
+	}
+	if reflect.DeepEqual(blankStruct, populatedStruct) {
+		t.Log("Blank and populated structs are the same.")
+	} else {
+		t.Logf("Populated: [%+v]\n", populatedStruct)
+		t.Logf("Blank: [%+v]\n", blankStruct)
+		t.Errorf("Comparison of blank and populated structs failed.")
+	}
+}
+
+func TestIntSliceParse(t *testing.T) {
+	type MyStruct struct {
+		ServicePorts []int
+	}
+	blankStruct := MyStruct{}
+	ports := []int{6379, 6380}
+	os.Setenv("C2FO_SERVICEPORTS", fmt.Sprintf("%v", ports))
+	gostrufig := GetGostrufig("appname", "http://localhost:2379", nil)
+	gostrufig.setInitialStructValues(&blankStruct, "c2fo")
+	populatedStruct := MyStruct{
+		ServicePorts: ports,
+	}
+	if reflect.DeepEqual(blankStruct, populatedStruct) {
+		t.Log("Blank and populated structs are the same.")
+	} else {
+		t.Logf("Populated: [%+v]\n", populatedStruct)
+		t.Logf("Blank: [%+v]\n", blankStruct)
 		t.Errorf("Comparison of blank and populated structs failed.")
 	}
 }

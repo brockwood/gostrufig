@@ -161,6 +161,19 @@ func setValue(targetValue *reflect.Value, valueString string) error {
 	case reflect.String:
 		targetValue.SetString(valueString)
 		break
+	case reflect.Slice:
+		raw := valueString[1 : len(valueString)-1]
+		parts := strings.Split(raw, " ")
+		sliceType := targetValue.Type()
+		entryType := sliceType.Elem()
+		sliceValue := reflect.MakeSlice(sliceType, len(parts), len(parts))
+		for ii, _ := range parts {
+			entryValue := reflect.New(entryType).Elem()
+			setValue(&entryValue, parts[ii])
+			sliceValue.Index(ii).Set(entryValue)
+		}
+		targetValue.Set(sliceValue)
+		break
 	}
 	return nil
 }
